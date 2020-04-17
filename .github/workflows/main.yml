@@ -1,0 +1,21 @@
+name: Deploy new docker-compose config
+
+on: 
+  push:
+    branches:
+      - master
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - name: executing remote ssh commands using password
+      uses: appleboy/ssh-action@master
+      with:
+        host: lp13.rpiambulance.com
+        username: ${{ secrets.SSH_USERNAME }}
+        password: ${{ secrets.SSH_PASSWORD }}
+        script: |
+          wget -O /drone/docker-compose.yml https://raw.githubusercontent.com/rpiambulance/lp13-deploy/master/docker-compose.yml
+          docker-compose -f /drone/docker-compose.yml up -d
