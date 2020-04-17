@@ -91,7 +91,7 @@ services:
       - traefik.http.routers.whoson-dev.tls.certresolver=tls
     env_file: whoson/dev/env.env
 
-#### UPGRADE TO TRAEFIK V2 SYNTAX BEFORE UNCOMMENTING
+##### UPGRADE TO TRAEFIK V2 SYNTAX BEFORE UNCOMMENTING
 #  mediawiki:
 #    build:
 #      context: .
