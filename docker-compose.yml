@@ -1,0 +1,239 @@
+version: '3'
+
+services:
+  traefik:
+    image: traefik:v2.1
+    container_name: traefik
+    restart: always
+    ports:
+      - 25:25
+      - 80:80
+      - 443:443
+    labels:
+      - traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)
+      - traefik.http.routers.http-catchall.entrypoints=web
+      - traefik.http.routers.http-catchall.middlewares=redirect-to-https@docker
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/traefik/traefik.yml:/etc/traefik/traefik.yml
+      - /etc/traefik/acme/acme.json:/letsencrypt/acme.json
+
+  at-channel:
+    build: https://github.com/rpiambulance/at-channel.git
+    container_name: at-channel
+    restart: always
+    labels:
+      - traefik.http.routers.at-channel.rule=Host(`at-channel.lp13.rpiambulance.com`)
+      - traefik.http.routers.at-channel.tls=true
+      - traefik.http.routers.at-channel.tls.certresolver=tls
+    env_file: at-channel/env.env
+
+  at-channel-dev:
+    build: https://github.com/rpiambulance/at-channel.git#dev
+    container_name: at-channel-dev
+    restart: always
+    labels:
+      - traefik.http.routers.at-channel-dev.rule=Host(`at-channel-dev.lp13.rpiambulance.com`)
+      - traefik.http.routers.at-channel-dev.tls=true
+      - traefik.http.routers.at-channel-dev.tls.certresolver=tls
+    env_file: at-channel/dev/env.env
+
+  inorout:
+    build: https://github.com/rpiambulance/slack-poll.git
+    container_name: inorout
+    restart: always
+    labels:
+      - traefik.http.routers.inorout.rule=Host(`inorout.lp13.rpiambulance.com`)
+      - traefik.http.routers.inorout.tls=true
+      - traefik.http.routers.inorout.tls.certresolver=tls
+    env_file: inorout/env.env
+
+  inorout-dev:
+    build: https://github.com/rpiambulance/slack-poll.git#dev
+    container_name: inorout-dev
+    restart: always
+    labels:
+      - traefik.http.routers.inorout-dev.rule=Host(`inorout-dev.lp13.rpiambulance.com`)
+      - traefik.http.routers.inorout-dev.tls=true
+      - traefik.http.routers.inorout-dev.tls.certresolver=tls
+    env_file: inorout/dev/env.env
+
+  rpialert:
+    build: https://github.com/rpiambulance/rpialert.git
+    container_name: rpialert
+    restart: always
+    env_file: rpialert/env.env
+
+  rpialert-dev:
+    build: https://github.com/rpiambulance/rpialert.git#dev
+    container_name: rpialert-dev
+    restart: always
+    env_file: rpialert/dev/env.env
+
+  whoson:
+    build: https://github.com/rpiambulance/whoson.git
+    container_name: whoson
+    restart: always
+    labels:
+      - traefik.http.routers.whoson.rule=Host(`whoson.lp13.rpiambulance.com`)
+      - traefik.http.routers.whoson.tls=true
+      - traefik.http.routers.whoson.tls.certresolver=tls
+    env_file: whoson/env.env
+
+  whoson-dev:
+    build: https://github.com/rpiambulance/whoson.git#dev
+    container_name: whoson-dev
+    restart: always
+    labels:
+      - traefik.http.routers.whoson-dev.rule=Host(`whoson-dev.lp13.rpiambulance.com`)
+      - traefik.http.routers.whoson-dev.tls=true
+      - traefik.http.routers.whoson-dev.tls.certresolver=tls
+    env_file: whoson/dev/env.env
+
+#### UPGRADE TO TRAEFIK V2 SYNTAX BEFORE UNCOMMENTING
+#  mediawiki:
+#    build:
+#      context: .
+#      dockerfile: wiki/Dockerfile
+#    container_name: mediawiki
+#    restart: always
+#    labels:
+#      - traefik.port=80
+#      - traefik.frontend.rule=Host:wiki.lp13.rpiambulance.com
+#    links:
+#      - mariadb
+#    volumes:
+#      - /var/www/html/images
+#      - /drone/wiki/LocalSettings.php:/var/www/html/LocalSettings.php
+
+  mariadb:
+    image: mariadb
+    container_name: mariadb
+    restart: always
+    volumes:
+      - /drone/rpiadb:/var/lib/mysql
+    env_file: mariadb/env.env
+
+  mailer:
+    build: https://github.com/rpiambulance/mailer.git
+    container_name: mailer
+    restart: always
+    labels:
+      - traefik.http.routers.mailer.rule=Host(`mailer.lp13.rpiambulance.com`)
+      - traefik.http.routers.mailer.tls=true
+      - traefik.http.routers.mailer.tls.certresolver=tls
+    volumes:
+      - /drone/mailer/keys:/usr/src/app/keys
+    env_file: mailer/env.env
+
+  website:
+    build: https://github.com/rpiambulance/website.git
+    container_name: website
+    restart: always
+    labels:
+      - traefik.http.routers.website.rule=Host(`rpiambulance.com`, `www.rpiambulance.com`, `website.lp13.rpiambulance.com`)
+      - traefik.http.routers.website.tls=true
+      - traefik.http.routers.website.tls.certresolver=tls
+    links:
+      - mariadb
+    volumes:
+      - /drone/website/.db_config.php:/var/www/html/.db_config.php:ro
+      - /drone/website/gcal_creds.json:/var/www/html/gcal_creds.json:ro
+      - /drone/website/.admin_config.php:/var/www/html/.admin_config.php:ro
+      - /drone/website/.form_config.php:/var/www/html/.form_config.php:ro
+    env_file: website/env.env
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadmin
+    restart: always
+    labels:
+      - traefik.http.routers.phpmyadmin.rule=Host(`phpmyadmin.lp13.rpiambulance.com`)
+      - traefik.http.routers.phpmyadmin.tls=true
+      - traefik.http.routers.phpmyadmin.tls.certresolver=tls
+    links:
+     - mariadb:db
+    depends_on:
+     - mariadb
+
+  chorebot:
+    build: https://github.com/rpiambulance/chorebot.git
+    container_name: chorebot
+    restart: always
+    labels:
+      - traefik.http.routers.chorebot.rule=Host(`chorebot.lp13.rpiambulance.com`)
+      - traefik.http.routers.chorebot.tls=true
+      - traefik.http.routers.chorebot.tls.certresolver=tls
+    volumes:
+      - /drone/chorebot/keys/sheets-api.json:/usr/src/app/keys/sheets-api.json
+    env_file: chorebot/env.env
+
+  chorebot-dev:
+    build: https://github.com/rpiambulance/chorebot.git#dev
+    container_name: chorebot-dev
+    restart: always
+    labels:
+      - traefik.http.routers.chorebot-dev.rule=Host(`chorebot-dev.lp13.rpiambulance.com`)
+      - traefik.http.routers.chorebot-dev.tls=true
+      - traefik.http.routers.chorebot-dev.tls.certresolver=tls
+    volumes:
+      - /drone/chorebot/keys/sheets-api.json:/usr/src/app/keys/sheets-api.json
+    env_file: chorebot/dev/env.env
+
+  slack-link:
+    build: https://github.com/rpiambulance/slack-link.git
+    container_name: slack-link
+    restart: always
+    labels:
+      - traefik.http.routers.slack-link.rule=Host(`slack-link.lp13.rpiambulance.com`)
+      - traefik.http.routers.slack-link.tls=true
+      - traefik.http.routers.slack-link.tls.certresolver=tls
+    env_file: slack-link/env.env
+
+  central:
+    image: httpd:alpine
+    container_name: central
+    restart: always
+    labels:
+      - traefik.http.routers.central.rule=Host(`central.rpiambulance.com`, `central.lp13.rpiambulance.com`)
+      - traefik.http.routers.central.tls=true
+      - traefik.http.routers.central.tls.certresolver=tls
+    volumes:
+      - /drone/central/placeholder:/usr/local/apache2/htdocs
+    env_file: central/env.env
+
+  central-dev:
+    build: https://github.com/rpiambulance/central.git
+    container_name: central-dev
+    restart: always
+    labels:
+      - traefik.http.routers.central-dev.rule=Host(`central-dev.rpiambulance.com`, `central-dev.lp13.rpiambulance.com`)
+      - traefik.http.routers.central-dev.tls=true
+      - traefik.http.routers.central-dev.tls.certresolver=tls
+    volumes:
+      - /drone/central/certs/GoogleIDPCertificate-dev.pem:/usr/src/app/certs/GoogleIDPCertificate-dev.pem
+    env_file: central/dev/env.env
+
+  headsup:
+    build: https://github.com/rpiambulance/headsup.git
+    container_name: headsup
+    restart: always
+    labels:
+      - traefik.http.routers.headsup.rule=Host(`headsup.lp13.rpiambulance.com`)
+      - traefik.http.routers.headsup.tls=true
+      - traefik.http.routers.headsup.tls.certresolver=tls
+    env_file: headsup/env.env
+
+  air-dev:
+    build: https://github.com/rpiambulance/air.git#dev
+    container_name: air-dev
+    restart: always
+    labels:
+      - traefik.http.services.air-dev.loadbalancer.server.port=3000
+      - traefik.http.routers.air-dev.rule=Host(`air-dev.lp13.rpiambulance.com`)
+      - traefik.tcp.services.air-dev.loadbalancer.server.port=25
+      - traefik.tcp.routers.air-dev.ulr=HostSNI(`air-dev.lp13.rpiambulance.com`)
+      - traefik.http.routers.air-dev.tls=true
+      - traefik.http.routers.air-dev.tls.certresolver=tls
+    env_file: air/dev/env.env
