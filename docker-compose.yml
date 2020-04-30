@@ -6,9 +6,9 @@ services:
     container_name: traefik
     restart: always
     ports:
-      - 25:25
-      - 80:80
-      - 443:443
+      - "25:25"
+      - "80:80"
+      - "443:443"
     labels:
       - traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)
       - traefik.http.routers.http-catchall.entrypoints=web
@@ -230,10 +230,13 @@ services:
     container_name: air-dev
     restart: always
     labels:
-      - traefik.http.services.air-dev.loadbalancer.server.port=3000
-      - traefik.http.routers.air-dev.rule=Host(`air-dev.lp13.rpiambulance.com`)
-      - traefik.tcp.services.air-dev.loadbalancer.server.port=25
-      - traefik.tcp.routers.air-dev.ulr=HostSNI(`air-dev.lp13.rpiambulance.com`)
-      - traefik.http.routers.air-dev.tls=true
-      - traefik.http.routers.air-dev.tls.certresolver=tls
+      - traefik.tcp.routers.air-dev_smtp.service=air-dev_smtp
+      - traefik.tcp.services.air-dev_smtp.loadbalancer.server.port=25
+      - traefik.tcp.routers.air-dev_smtp.entrypoints=smtp
+      - traefik.tcp.routers.air-dev_smtp.rule=HostSNI(`*`)
+      - traefik.http.routers.air-dev_http.service=air-dev_http
+      - traefik.http.services.air-dev_http.loadbalancer.server.port=3000
+      - traefik.http.routers.air-dev_http.rule=Host(`air-dev.lp13.rpiambulance.com`)
+      - traefik.http.routers.air-dev_http.tls=true
+      - traefik.http.routers.air-dev_http.tls.certresolver=tls
     env_file: air/dev/env.env
