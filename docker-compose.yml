@@ -237,6 +237,7 @@ services:
       - traefik.http.routers.air-dev_http.service=air-dev_http
       - traefik.http.services.air-dev_http.loadbalancer.server.port=3000
       - traefik.http.routers.air-dev_http.rule=Host(`air-dev.lp13.rpiambulance.com`)
+      - traefik.tcp.routers.air-dev_http.entrypoints=websecure
       - traefik.http.routers.air-dev_http.tls=true
       - traefik.http.routers.air-dev_http.tls.certresolver=tls
     env_file: air/dev/env.env
